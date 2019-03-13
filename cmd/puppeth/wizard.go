@@ -366,3 +366,23 @@ func (w *wizard) readIPAddress() string {
 		return text
 	}
 }
+
+func (w *wizard) readPCR() string {
+	for {
+		// Read the PCR from the user
+		fmt.Printf("> ")
+		text, err := w.in.ReadString('\n')
+		if err != nil {
+			log.Crit("Failed to read user input", "err", err)
+		}
+		if text = strings.TrimSpace(text); text == "" {
+			return ""
+		}
+		// Make sure it looks ok and return it if so
+		if len(text) != 88 || !strings.HasPrefix(text, "00000001000b") {
+			log.Error("Invalid PCR value, please retry")
+			continue
+		}
+		return text
+	}
+}
