@@ -22,7 +22,6 @@ func main() {
 	if strings.TrimSpace(text) == "q" {
 		os.Exit(0)
 	}
-	poi.InitPCR()
 	quoted, _, err := poi.TPMSign("")
 	if err != nil {
 		log.Crit(err.Error())

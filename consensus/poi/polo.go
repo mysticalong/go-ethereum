@@ -2,7 +2,6 @@ package poi
 
 import (
 	"bytes"
-	"encoding/hex"
 	"errors"
 	"io"
 	"math/big"
@@ -185,6 +184,7 @@ func (p *Polo) VerifyUncles(chain consensus.ChainReader, block *types.Block) err
 func (p *Polo) Prepare(chain consensus.ChainReader, header *types.Header) error {
 	// header.Coinbase = common.Address{}
 	header.Nonce = types.BlockNonce{}
+	header.Seal = p.pubKey
 	number := header.Number.Uint64()
 	snap, err := p.snapshot(chain, number-1, header.ParentHash, nil)
 	if err != nil {
@@ -370,11 +370,13 @@ func (p *Polo) Seal(chain consensus.ChainReader, block *types.Block, results cha
 		log.Trace("Out-of-turn signing requested", "wiggle", common.PrettyDuration(wiggle))
 	}
 	// Sign all the things!
-	signHash := hex.EncodeToString(PoloRLP(header))
-	quoted, sig, err := TPMSign(signHash)
+	signHash := SealHash(header)
+	quoted, sig, err := TPMSign(signHash.Hex()[2:])
 	if err != nil {
 		return err
 	}
+
+	header.Seal = make([]byte, pubkeyLength+quotedLength+len(sig))
 	copy(header.Seal[:pubkeyLength-1], p.pubKey)
 	copy(header.Seal[pubkeyLength:pubkeyLength+quotedLength-1], quoted)
 	copy(header.Seal[pubkeyLength+quotedLength:], sig)
@@ -648,7 +650,7 @@ func encodeSigHeader(w io.Writer, header *types.Header) {
 		header.GasLimit,
 		header.GasUsed,
 		header.Time,
-		header.Extra[:len(header.Extra)-65], // Yes, this will panic if extra is too short
+		header.Extra,
 		header.Seal[:pubkeyLength-1],
 		header.MixDigest,
 		header.Nonce,

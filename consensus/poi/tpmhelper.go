@@ -23,8 +23,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-var pcrPath, tmpPath string
-
 var (
 	ErrPCRQuoteInfo      = errors.New("PCR quote not match")
 	ErrNotECPublicKey    = errors.New("Key is not a valid ECDSA public key")
@@ -33,23 +31,6 @@ var (
 	ErrECDSAVerification = errors.New("DSA Verification failed")
 	ErrSignatureSize     = errors.New("Wrong Signature Size")
 )
-
-func InitPCR() {
-
-	usr, err := user.Current()
-	if err != nil {
-		log.Fatal(err)
-	}
-	userHome := usr.HomeDir
-	pcrPath = path.Join(userHome, ".pcr")
-	if pcrthere, _ := exists(pcrPath); !pcrthere {
-		log.Fatalf("no pcr folder exists!")
-	}
-	tmpPath = path.Join(userHome, ".tmp")
-	if tmpthere, _ := exists(tmpPath); !tmpthere {
-		os.Mkdir(tmpPath, os.ModePerm)
-	}
-}
 
 func exists(path string) (bool, error) {
 	_, err := os.Stat(path)
@@ -63,6 +44,15 @@ func exists(path string) (bool, error) {
 }
 
 func GetPubKeyBytes() ([]byte, error) {
+	usr, err := user.Current()
+	if err != nil {
+		log.Fatal(err)
+	}
+	userHome := usr.HomeDir
+	pcrPath := path.Join(userHome, ".pcr")
+	if pcrthere, _ := exists(pcrPath); !pcrthere {
+		log.Fatalf("no pcr folder exists!")
+	}
 	pubKeyPath := path.Join(pcrPath, "public.ecc.pem")
 	key, err := ioutil.ReadFile(pubKeyPath)
 	if err != nil {
@@ -88,8 +78,9 @@ func SignerFromSeal(seal []byte) common.Address {
 }
 
 func TPMSign(hashToSign string) ([]byte, []byte, error) {
-	defer flushPCR()
-	args := strings.Split("-C 0x81010001 -G sha256 -L sha256:10,17,18 -f plain -s pcr.out.signed -m pcr.in.raw", " ")
+	log.Println("tpm signing", hashToSign)
+	// defer flushPCR()
+	args := strings.Split("-C 0x81010001 -G sha256 -L sha256:0,1,2,3,4,5,6,7,10,17,18 -f plain", " ")
 	if hashToSign != "" {
 		args = append(args, "-q")
 		args = append(args, hashToSign)
@@ -105,7 +96,7 @@ func TPMSign(hashToSign string) ([]byte, []byte, error) {
 		return nil, nil, errors.New("PCR Error: signed nothing out.")
 	}
 	resultStr := string(result)
-	log.Println("\n", resultStr)
+	// log.Println("\n", resultStr)
 	end := strings.Index(resultStr, "signature:")
 	quotedStr := resultStr[7:end]
 	quotedStr = strings.TrimSpace(quotedStr)
@@ -170,7 +161,6 @@ func SignatureVerify(pubKey *ecdsa.PublicKey, signature []byte, quoted []byte) e
 }
 func cmdWrapper(name string, args ...string) ([]byte, error) {
 	cmd := exec.Command(name, args...)
-	cmd.Dir = tmpPath
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, err
