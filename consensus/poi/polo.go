@@ -377,9 +377,9 @@ func (p *Polo) Seal(chain consensus.ChainReader, block *types.Block, results cha
 	}
 
 	header.Seal = make([]byte, pubkeyLength+quotedLength+len(sig))
-	copy(header.Seal[:pubkeyLength-1], p.pubKey)
-	copy(header.Seal[pubkeyLength:pubkeyLength+quotedLength-1], quoted)
-	copy(header.Seal[pubkeyLength+quotedLength:], sig)
+	copy(header.Seal[:pubkeyLength], p.pubKey)
+	copy(header.Seal[pubkeyLength+1:pubkeyLength+quotedLength], quoted)
+	copy(header.Seal[pubkeyLength+quotedLength+1:], sig)
 	// Wait until sealing is terminated or delay timeout.
 	log.Trace("Waiting for slot to sign and propagate", "delay", common.PrettyDuration(delay))
 	go func() {

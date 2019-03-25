@@ -66,6 +66,7 @@ func GetPubKeyBytes() ([]byte, error) {
 }
 
 func SignerFromPubKey(pubkey []byte) common.Address {
+	log.Printf("Pubkey in SignerFromPubKey: %x", pubkey)
 	tmp := sha3.Sum256(pubkey[:])
 	bsigner := tmp[12:]
 	signer := common.BytesToAddress(bsigner)
@@ -73,7 +74,7 @@ func SignerFromPubKey(pubkey []byte) common.Address {
 }
 
 func SignerFromSeal(seal []byte) common.Address {
-	pubkey := seal[:90]
+	pubkey := seal[:pubkeyLength]
 	return SignerFromPubKey(pubkey)
 }
 

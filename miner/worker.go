@@ -599,7 +599,7 @@ func (w *worker) resultLoop() {
 
 			// Insert the block into the set of pending ones to resultLoop for confirmations
 			w.unconfirmed.Insert(block.NumberU64(), block.Hash())
-
+			log.Info("<mined block>", "block", block.Header())
 		case <-w.exitCh:
 			return
 		}
